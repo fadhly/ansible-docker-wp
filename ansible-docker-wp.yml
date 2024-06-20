@@ -15,7 +15,7 @@
 - hosts: docker
   become: true
   vars:
-    ansible_user: dhini
+    ansible_user: username
     container_count: 1
     wp_container_name: web
     wp_container_image: wordpress
