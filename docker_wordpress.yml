@@ -1,0 +1,87 @@
+---
+- hosts: localhost
+  become: true
+  tasks:
+    - name: Password generator
+      apt:
+        pkg:
+          - makepasswd
+        state: latest
+        update_cache: true
+
+    - name: Create Random Passwd
+      ansible.builtin.shell: makepasswd > passwd.txt
+
+- hosts: docker
+  become: true
+  vars:
+    ansible_user: dhini
+    container_count: 1
+    wp_container_name: web
+    wp_container_image: wordpress
+    mysql_container_name: database
+    mysql_container_image: mysql:5.7
+    wp_user: wpuser
+    wp_db: wordpress
+    wp_host: 172.17.0.1
+
+  tasks:
+    - name: Install aptitude
+      apt:
+        name: aptitude
+        state: latest
+        update_cache: true
+
+    - name: Install required system packages
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - python3-pip
+          - virtualenv
+          - python3-setuptools
+          - docker.io
+          - python3-docker
+        state: latest
+        update_cache: true
+
+    - name: Pull Database Docker image
+      community.docker.docker_image:
+        name: "{{ mysql_container_image }}"
+        source: pull
+
+    - name: Create Database containers
+      community.docker.docker_container:
+        name: "{{ mysql_container_name }}"
+        image: "{{ mysql_container_image }}"
+        state: started
+        restart: yes
+        ports:
+          - "3306:3306"
+        env:
+          MYSQL_ROOT_PASSWORD: "{{ lookup('ansible.builtin.file', './passwd.txt') }}"
+          MYSQL_DATABASE: "{{wp_db}}"
+          MYSQL_USER: "{{wp_user}}"
+          MYSQL_PASSWORD: "{{ lookup('ansible.builtin.file', './passwd.txt') }}"
+
+    - name: Pull Wordpress Docker image
+      community.docker.docker_image:
+        name: "{{ wp_container_image }}"
+        source: pull
+
+    - name: Create Wordpress containers
+      community.docker.docker_container:
+        name: "{{ wp_container_name }}"
+        image: "{{ wp_container_image }}"
+        state: started
+        restart: yes
+        ports:
+          - "80:80"
+        env:
+          WORDPRESS_DB_HOST: "{{ wp_host }}"
+          WORDPRESS_DB_NAME: "{{ wp_db }}"
+          WORDPRESS_DB_USER: "{{ wp_user }}"
+          WORDPRESS_DB_PASSWORD: "{{ lookup('ansible.builtin.file', './passwd.txt') }}"
+      with_sequence: count={{ container_count }}
