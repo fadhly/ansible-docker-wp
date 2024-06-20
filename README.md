@@ -13,5 +13,5 @@ Usage: <br />
 ansible-playboook -i inventory ansible-docker-wp.yml
 
 Note: <br />
-Modify your /etc/hosts and add your server+ip
+Modify your /etc/hosts and add your server+ip <br />
 Modify your username on ansible-docker-wp.yml 
