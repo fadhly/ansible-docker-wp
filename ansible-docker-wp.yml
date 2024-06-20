@@ -12,7 +12,7 @@
     - name: Create Random Passwd
       ansible.builtin.shell: makepasswd > passwd.txt
 
-- hosts: docker
+- hosts: server
   become: true
   vars:
     ansible_user: username
